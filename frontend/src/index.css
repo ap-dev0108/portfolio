@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Outline&display=swap');
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+@theme {
+  --font-bungee: "Bungee", sans-serif;
+  --font-bungee-outline: "Bungee Outline", sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: "Lora";
+}
