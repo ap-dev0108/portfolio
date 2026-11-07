@@ -19,25 +19,18 @@ interface Resume {
 // Example labels. Rename them to match the resumes you actually have.
 const RESUMES: Resume[] = [
   {
-    id: "fullstack",
-    label: "Full-stack developer",
-    note: "React, TypeScript, ASP.NET Core, PostgreSQL",
-    file: "/resumes/aryan-pradhan-fullstack.pdf",
-    downloadName: "Aryan-Pradhan-Fullstack-Resume.pdf",
+    id: "wordpress",
+    label: "Wordpress developer",
+    note: "Wordpress",
+    file: "C:/Users/aryan/Downloads/Aryan_Pradhan_Wordpress_Developer.pdf",
+    downloadName: "Aryan-Pradhan-Wordpress-Resume.pdf",
   },
   {
-    id: "frontend",
-    label: "Frontend developer",
-    note: "React, TypeScript, Figma to code",
-    file: "/resumes/aryan-pradhan-frontend.pdf",
-    downloadName: "Aryan-Pradhan-Frontend-Resume.pdf",
-  },
-  {
-    id: "freelance",
-    label: "Freelance web developer",
-    note: "WordPress and Wix client work",
-    file: "/resumes/aryan-pradhan-freelance.pdf",
-    downloadName: "Aryan-Pradhan-Freelance-Resume.pdf",
+    id: "DotNet",
+    label: "DotNet developer",
+    note: "C#, ASP.NET Core, SQL Server",
+    file: "C:\\Users\\aryan\\Downloads\\Aryan_Pradhan_Junior_Dotnet_Fullstack_Developer.pdf",
+    downloadName: "Aryan-Pradhan-DotNet-Resume.pdf",
   },
 ];
 
@@ -233,7 +226,6 @@ function Select({ id, name, options }: { id: string; name: string; options: stri
 type Status = "idle" | "sending" | "sent" | "error";
 
 interface ContactProps {
-  /** Where to POST the form as JSON (Formspree, your API route, etc.). */
   endpoint?: string;
 }
 
