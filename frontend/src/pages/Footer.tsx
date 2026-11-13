@@ -14,7 +14,7 @@ const NAV_LINKS: NavLink[] = [
   { label: "Contact", href: "#contact" },
 ];
 
-const EMAIL = "hello@aryanpradhan.dev";
+const EMAIL = "aryanpradhan773@gmail.com";
 
 const focusRing =
   "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-pink-400";
