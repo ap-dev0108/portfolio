@@ -80,7 +80,7 @@ const OFFERINGS: Offering[] = [
 
 export default function WhatImOffering() {
   return (
-    <section
+    <section id="services"
       aria-labelledby="offering-heading"
       className="bg-gray-100 px-5 py-20 sm:px-8 lg:px-16"
     >
@@ -113,7 +113,7 @@ export default function WhatImOffering() {
               <a
                 href={item.href}
                 className={[
-                  "mt-auto inline-flex w-fit items-center self-start border-2 border-black bg-black px-6 py-3",
+                  "mt-4 inline-flex w-fit items-center self-start border-2 border-black bg-black px-6 py-3",
                   "font-['Open_Sans',sans-serif] text-sm font-bold text-white",
                   "shadow-[4px_4px_0_#9ca3af] transition-[transform,box-shadow] duration-150",
                   "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#9ca3af]",
