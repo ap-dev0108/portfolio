@@ -48,7 +48,7 @@ const hasLearning = SKILL_GROUPS.some((g) => g.skills.some((s) => s.learning));
 
 export default function TechnicalArsenal() {
   return (
-    <section
+    <section id="skills"
       aria-labelledby="arsenal-heading"
       className="border-y-[6px] border-black bg-white px-5 py-20 sm:px-8 lg:px-16"
     >
