@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+// Adjust these paths to wherever this file lives relative to src/.
+import { useCloudinaryAssets } from "../services/UseCloudinaryService";
+import { workImageProps } from "../../api/cloudinary";
+import type { WorkImage } from "../../api/cloudinary";
 
 type Platform = "wordpress" | "wix" | "react" | "dotnet" | "springboot";
 type Filter = "all" | Platform;
@@ -8,8 +12,7 @@ interface Project {
   title: string;
   /** Leave undefined until the live URL exists; the card then renders as a non-link. */
   href?: string;
-  /** Drop a screenshot at this path and it replaces the placeholder automatically. */
-  image: string;
+  /** The Cloudinary file name must match `id` (e.g. "tisc"), tagged "portfolio-work". */
   imageAlt: string;
   categories: Platform[]; // a project can match more than one filter
   inProgress?: boolean;
@@ -37,7 +40,6 @@ const PROJECTS: Project[] = [
     id: "gravity-nepal",
     title: "Gravity Nepal",
     href: "https://gravitynepal.com",
-    image: "/images/works/gravity-nepal.png",
     imageAlt: "Gravity Nepal website",
     categories: ["wordpress"],
   },
@@ -45,15 +47,13 @@ const PROJECTS: Project[] = [
     id: "prudent-meditech",
     title: "Prudent Meditech",
     href: "https://prudentmeditech.com",
-    image: "/images/works/prudent-meditech.png",
     imageAlt: "Prudent Meditech website",
     categories: ["wordpress"],
   },
   {
-    id: "saasentials",
+    id: "Saasentials",
     title: "SaaSentials",
-    // href: add the Wix Marketplace URL here
-    image: "/images/works/saasentials.png",
+    href: "https://www.wix.com/marketplace/template/view/listing/4a3a3e63-09c5-4af8-a220-dd3a63eb04ab?entry=gallery_page",
     imageAlt: "SaaSentials Wix template",
     categories: ["wix"],
   },
@@ -61,15 +61,13 @@ const PROJECTS: Project[] = [
     id: "tisc",
     title: "Tisc",
     href: "https://tisc.ge",
-    image: "/images/works/tisc.png",
     imageAlt: "Tisc website",
     categories: ["wix"],
   },
   {
-    id: "thinkhealth",
+    id: "think-health",
     title: "ThinkHealth",
     href: "https://thinkhealth.in",
-    image: "/images/works/thinkhealth.png",
     imageAlt: "ThinkHealth website",
     categories: ["wix"],
   },
@@ -77,14 +75,12 @@ const PROJECTS: Project[] = [
     id: "reserved-for-you",
     title: "Reserved for you",
     href: "https://reserved-for-you.vercel.app",
-    image: "/images/works/reserved-for-you.png",
     imageAlt: "Reserved for you web app",
     categories: ["react"],
   },
   {
     id: "ordergaram",
     title: "Ordergaram",
-    image: "/images/works/ordergaram.png",
     imageAlt: "Ordergaram app",
     categories: ["dotnet"],
     inProgress: true,
@@ -92,17 +88,37 @@ const PROJECTS: Project[] = [
   {
     id: "chatly",
     title: "Chatly",
-    image: "/images/works/chatly.png",
     imageAlt: "Chatly app",
     categories: ["springboot"],
     inProgress: true,
   },
 ];
 
-function ProjectImage({ src, alt }: { src: string; alt: string }) {
+function ProjectImage({
+  image,
+  cloudName,
+  pending,
+  alt,
+}: {
+  image?: WorkImage;
+  cloudName?: string;
+  pending: boolean;
+  alt: string;
+}) {
   const [failed, setFailed] = useState(false);
 
-  if (failed) {
+  // While the asset list is loading, hold the space with a quiet skeleton
+  // so the card doesn't flash "coming soon" for a second.
+  if (pending) {
+    return (
+      <div
+        aria-hidden="true"
+        className="m-6 mt-12 aspect-[4/3] bg-neutral-100 motion-safe:animate-pulse"
+      />
+    );
+  }
+
+  if (!image || !cloudName || failed) {
     return (
       <div
         role="img"
@@ -115,17 +131,29 @@ function ProjectImage({ src, alt }: { src: string; alt: string }) {
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="aspect-[4/3] w-full object-cover object-top p-6 pt-12"
-    />
+    <div className="p-6 pt-12">
+      <img
+        {...workImageProps(cloudName, image)}
+        alt={alt}
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className="aspect-[4/3] w-full object-contain bg-neutral-100"
+      />
+    </div>
   );
 }
 
-function WorkCard({ project }: { project: Project }) {
+function WorkCard({
+  project,
+  image,
+  cloudName,
+  pending,
+}: {
+  project: Project;
+  image?: WorkImage;
+  cloudName?: string;
+  pending: boolean;
+}) {
   const body = (
     <>
       <span className="absolute left-3 top-3 bg-black px-2.5 py-1 font-['Bungee',sans-serif] text-[0.7rem] text-white">
@@ -137,7 +165,7 @@ function WorkCard({ project }: { project: Project }) {
         </span>
       )}
 
-      <ProjectImage src={project.image} alt={project.imageAlt} />
+      <ProjectImage image={image} cloudName={cloudName} pending={pending} alt={project.imageAlt} />
 
       <span
         className={[
@@ -171,6 +199,8 @@ function WorkCard({ project }: { project: Project }) {
 
 export default function SelectedWorks() {
   const [filter, setFilter] = useState<Filter>("all");
+  // Screenshots come from Cloudinary (tag: portfolio-work) through /api/assets.
+  const { data: assets, loading: assetsLoading } = useCloudinaryAssets();
 
   const visible = useMemo(
     () =>
@@ -181,9 +211,9 @@ export default function SelectedWorks() {
   );
 
   return (
-    <section
+    <section id="work"
       aria-labelledby="works-heading"
-      className="bg-black px-5 py-20 text-white sm:px-8 lg:px-16 mt-[-40px]"
+      className="bg-black px-5 py-20 text-white sm:px-8 lg:px-16 mt-[-60px]"
     >
       {/* Local keyframes so the component works without touching tailwind.config */}
       <style>{`
@@ -264,7 +294,12 @@ export default function SelectedWorks() {
                   key={project.id}
                   className="motion-safe:[animation:works-in_0.25s_ease-out]"
                 >
-                  <WorkCard project={project} />
+                  <WorkCard
+                    project={project}
+                    image={assets?.works[project.id]}
+                    cloudName={assets?.cloudName}
+                    pending={assetsLoading}
+                  />
                 </li>
               ))}
             </ul>
