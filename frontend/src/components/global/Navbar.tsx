@@ -2,9 +2,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import Button from "../ui/Button";
 
 const ITEMS = [
-    { heading: "Work", count: 2, url: "/" },
-    { heading: "Services", count: 2, url: "/services" },
-    { heading: "Experience", count: 2, url: "/experience" },
+    { heading: "Work", count: 6, url: "/" },
+    { heading: "Services", count: 3, url: "/services" },
+    { heading: "Experience", count: 1, url: "/experience" },
     { heading: "Contact", count: 2, url: "/contact" },
 ];
 
@@ -66,7 +66,7 @@ export default function Navbar() {
                 <div className="flex items-center justify-end gap-3">
                     {/* From sm up the CTA lives in the bar; below that it moves into the menu. */}
                     <div className="hidden sm:block">
-                        <Button lable="Let's Talk" />
+                        <Button label="Let's Talk"/>
                     </div>
 
                     <button
@@ -121,7 +121,9 @@ export default function Navbar() {
                         </ul>
 
                         <div className="py-6 sm:hidden [&>a]:w-full [&>button]:w-full">
-                            <Button lable="Let's Talk" />
+                            <a href="#contact">
+                                <Button label="Let's Talk"/>
+                            </a>
                         </div>
                     </nav>
                 </div>
