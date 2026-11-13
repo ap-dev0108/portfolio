@@ -1,38 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent, ReactNode } from "react";
-
-/* -------------------------------------------------------------------------- */
-/*  Resumes                                                                    */
-/* -------------------------------------------------------------------------- */
-
-interface Resume {
-  id: string;
-  label: string;
-  note: string;
-  /** Put the PDFs in your public folder, e.g. public/resumes/. It must be a
-   *  same-origin path: browsers ignore the `download` attribute for other sites. */
-  file: string;
-  /** The file name the visitor's browser saves it as. */
-  downloadName: string;
-}
-
-// Example labels. Rename them to match the resumes you actually have.
-const RESUMES: Resume[] = [
-  {
-    id: "wordpress",
-    label: "Wordpress developer",
-    note: "Wordpress",
-    file: "C:/Users/aryan/Downloads/Aryan_Pradhan_Wordpress_Developer.pdf",
-    downloadName: "Aryan-Pradhan-Wordpress-Resume.pdf",
-  },
-  {
-    id: "DotNet",
-    label: "DotNet developer",
-    note: "C#, ASP.NET Core, SQL Server",
-    file: "C:\\Users\\aryan\\Downloads\\Aryan_Pradhan_Junior_Dotnet_Fullstack_Developer.pdf",
-    downloadName: "Aryan-Pradhan-DotNet-Resume.pdf",
-  },
-];
+// Adjust these two paths to wherever this file lives relative to src/.
+import { useCloudinaryAssets } from "../services/UseCloudinaryService";
+import { formatBytes, resumeDownloadUrl } from "../../api/cloudinary";
 
 /* -------------------------------------------------------------------------- */
 /*  Icons                                                                      */
@@ -96,6 +66,8 @@ const buttonClass = [
 ].join(" ");
 
 function ResumePicker() {
+  // Resumes come from Cloudinary (tag: portfolio-resume), through /api/assets.
+  const { data, loading, error } = useCloudinaryAssets();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -118,11 +90,35 @@ function ResumePicker() {
     }
   };
 
-  // With only one resume there is nothing to choose, so download it directly.
-  if (RESUMES.length === 1) {
-    const [only] = RESUMES;
+  const cloudName = data?.cloudName ?? "";
+  const resumes = data?.resumes ?? [];
+
+  if (loading) {
     return (
-      <a href={only.file} download={only.downloadName} type="application/pdf" className={buttonClass}>
+      <button
+        type="button"
+        disabled
+        aria-busy="true"
+        className={`${buttonClass} cursor-wait opacity-60 hover:translate-x-0 hover:translate-y-0 hover:shadow-[6px_6px_0_#fff]`}
+      >
+        <DownloadIcon />
+        Loading resumes…
+      </button>
+    );
+  }
+
+  if (error || resumes.length === 0) {
+    return (
+      <p className="max-w-sm font-['Lora',serif] text-base text-gray-400">
+        My resumes aren’t available right now. Send me a message with the form and I’ll share one.
+      </p>
+    );
+  }
+
+  // With only one resume there is nothing to choose, so download it directly.
+  if (resumes.length === 1) {
+    return (
+      <a href={resumeDownloadUrl(cloudName, resumes[0])} rel="noopener" className={buttonClass}>
         <DownloadIcon />
         Download resume
       </a>
@@ -155,28 +151,35 @@ function ResumePicker() {
             Choose a version
           </p>
           <ul>
-            {RESUMES.map((r) => (
-              <li key={r.id} className="border-b-2 border-gray-700 last:border-b-0">
-                <a
-                  href={r.file}
-                  download={r.downloadName}
-                  type="application/pdf"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-4 px-4 py-4 text-white hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black focus-visible:outline-none"
-                >
-                  <span className="flex-none">
-                    <PdfBadge size={36} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block font-['Open_Sans',sans-serif] text-base font-bold">
-                      {r.label}
+            {resumes.map((r) => {
+              const meta = ["PDF", formatBytes(r.bytes)].filter(Boolean).join(" · ");
+              return (
+                <li key={r.id} className="border-b-2 border-gray-700 last:border-b-0">
+                  {/* fl_attachment in this URL is what makes the browser save the file.
+                      The HTML `download` attribute is ignored for files on another domain. */}
+                  <a
+                    href={resumeDownloadUrl(cloudName, r)}
+                    rel="noopener"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-4 px-4 py-4 text-white hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black focus-visible:outline-none"
+                  >
+                    <span className="flex-none">
+                      <PdfBadge size={36} />
                     </span>
-                    <span className="block font-['Lora',serif] text-sm opacity-70">{r.note}</span>
-                  </span>
-                  <span className="sr-only">(PDF download)</span>
-                </a>
-              </li>
-            ))}
+                    <span className="min-w-0">
+                      <span className="block font-['Open_Sans',sans-serif] text-base font-bold">
+                        {r.label}
+                      </span>
+                      {r.note && (
+                        <span className="block font-['Lora',serif] text-sm opacity-70">{r.note}</span>
+                      )}
+                      <span className="block font-['Lora',serif] text-xs opacity-60">{meta}</span>
+                    </span>
+                    <span className="sr-only">(downloads a PDF)</span>
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -226,30 +229,61 @@ function Select({ id, name, options }: { id: string; name: string; options: stri
 type Status = "idle" | "sending" | "sent" | "error";
 
 interface ContactProps {
+  /** API route that emails you each message. Defaults to the function in api/contact.ts. */
   endpoint?: string;
 }
 
-function ContactForm({ endpoint }: ContactProps) {
+/** Everything the browser can tell us about the visitor. It travels with the form
+ *  and ends up in the email. The server adds the things it can see for itself
+ *  (exact time, IP address, approximate location, raw user agent). */
+function collectClientDetails(startedAt: number) {
+  const nav = navigator as Navigator & {
+    userAgentData?: {
+      platform?: string;
+      mobile?: boolean;
+      brands?: { brand: string; version: string }[];
+    };
+    connection?: { effectiveType?: string };
+    deviceMemory?: number;
+  };
+  const now = new Date();
+
+  return {
+    localTime: now.toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" }),
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    secondsToFill: Math.round((Date.now() - startedAt) / 1000),
+    platform: nav.userAgentData?.platform ?? nav.platform,
+    brands: nav.userAgentData?.brands?.map((b) => `${b.brand} ${b.version}`).join(", "),
+    touch: nav.maxTouchPoints > 0,
+    languages: nav.languages?.join(", ") ?? nav.language,
+    screen: `${screen.width}×${screen.height} at ${window.devicePixelRatio}x`,
+    viewport: `${window.innerWidth}×${window.innerHeight}`,
+    colorScheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+    connection: nav.connection?.effectiveType,
+    deviceMemory: nav.deviceMemory,
+    pageUrl: window.location.href,
+    referrer: document.referrer,
+  };
+}
+
+function ContactForm({ endpoint = "/api/contact" }: ContactProps) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
+  const startedAt = useRef(Date.now()); // when the visitor first saw the form
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-
-    if (!endpoint) {
-      console.warn("ContactAndResume: pass an `endpoint` prop to send messages.");
-      setError("This form isn’t connected to an inbox yet.");
-      setStatus("error");
-      return;
-    }
 
     setStatus("sending");
     try {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(Object.fromEntries(new FormData(form))),
+        body: JSON.stringify({
+          ...Object.fromEntries(new FormData(form)),
+          client: collectClientDetails(startedAt.current),
+        }),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       form.reset();
@@ -283,6 +317,14 @@ function ContactForm({ endpoint }: ContactProps) {
         <textarea id="contact-message" name="message" required rows={5} placeholder="Tell me about your project…" className={`${fieldClass} resize-y`} />
       </Field>
 
+      {/* Honeypot: hidden from people, tempting to bots. Anything typed here is discarded. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label>
+          Leave this field empty
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+        </label>
+      </div>
+
       <button
         type="submit"
         disabled={status === "sending"}
@@ -296,6 +338,10 @@ function ContactForm({ endpoint }: ContactProps) {
       >
         {status === "sending" ? "Sending…" : "Send message"}
       </button>
+
+      <p className="font-['Lora',serif] text-sm text-gray-400">
+        Your message is sent together with basic device and browser details, which help me reply.
+      </p>
 
       {/* Announced to screen readers when it changes */}
       <p aria-live="polite" className="min-h-6 font-['Lora',serif] text-base text-gray-300">
