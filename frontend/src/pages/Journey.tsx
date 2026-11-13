@@ -38,14 +38,20 @@ const ENTRIES: Record<TabId, Entry[]> = {
     },
   ],
   education: [
-    // TODO: replace with your real education. This placeholder only shows the layout.
     {
       id: "education-placeholder",
-      period: { start: "2020-01", end: "2024-01" },
-      title: "Your degree or course",
-      org: "Your school",
-      description: "Add what you studied and what you took away from it.",
+      period: { start: "2021-08", end: "2022-04" },
+      title: "Secondary Education (+2)",
+      org: "V.S. Niketan",
+      description: "I completed my secondary education with a degree on computer management",
     },
+    {
+      id: "bachelors-placeholder",
+      period: { start: "2022-10", end: "2026-04" },
+      title: "Bachelor's Degree",
+      org: "Islington College",
+      description: "I completed my bachelor's degree in computer science and information technology",
+    }
   ],
 };
 
@@ -135,7 +141,7 @@ export default function MyJourney() {
   };
 
   return (
-    <section
+    <section id="experience"
       aria-labelledby="journey-heading"
       className="bg-gray-100 px-5 py-20 sm:px-8 lg:px-16"
     >
