@@ -66,7 +66,9 @@ export default function Navbar() {
                 <div className="flex items-center justify-end gap-3">
                     {/* From sm up the CTA lives in the bar; below that it moves into the menu. */}
                     <div className="hidden sm:block">
-                        <Button label="Let's Talk"/>
+                        <a href="#contact">
+                            <Button label="Let's Talk"/>
+                        </a>
                     </div>
 
                     <button
