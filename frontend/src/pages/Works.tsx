@@ -72,13 +72,6 @@ const PROJECTS: Project[] = [
     categories: ["wix"],
   },
   {
-    id: "reserved-for-you",
-    title: "Reserved for you",
-    href: "https://reserved-for-you.vercel.app",
-    imageAlt: "Reserved for you web app",
-    categories: ["react"],
-  },
-  {
     id: "ordergaram",
     title: "Ordergaram",
     imageAlt: "Ordergaram app",
