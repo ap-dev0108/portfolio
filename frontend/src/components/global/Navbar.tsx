@@ -3,9 +3,9 @@ import Button from "../ui/Button";
 
 const ITEMS = [
     { heading: "Work", count: 6, url: "/" },
-    { heading: "Services", count: 3, url: "/services" },
-    { heading: "Experience", count: 1, url: "/experience" },
-    { heading: "Contact", count: 2, url: "/contact" },
+    { heading: "Services", count: 3 },
+    { heading: "Experience", count: 1 },
+    { heading: "Contact", count: 2},
 ];
 
 const focusRing =
