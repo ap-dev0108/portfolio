@@ -26,7 +26,6 @@ const heroImageClass = "h-[550px] w-[480px] overflow-hidden object-cover md:max-
 export default function Hero() {
     // The hero picture comes from Cloudinary (tag: portfolio-hero) through /api/assets.
     const { data, error } = useCloudinaryAssets();
-    console.log(data, error);
     const hero = data?.hero;
     // If Cloudinary can't be reached, or no image is tagged yet, fall back to the local file.
     const useLocalFallback = Boolean(error) || (data !== undefined && !hero);
