@@ -144,7 +144,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
-        console.error("contact: RESEND_API_KEY is not set");
         return res.status(500).json({ error: "Email isn’t configured on the server." });
     }
 
@@ -255,13 +254,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         });
 
         if (!response.ok) {
-            console.error("contact: Resend rejected the email", response.status, await response.text());
             return res.status(502).json({ error: "The message couldn’t be delivered. Please try again." });
         }
 
         return res.status(200).json({ ok: true });
     } catch (err) {
-        console.error("contact: request to Resend failed", err);
         return res.status(502).json({ error: "The message couldn’t be delivered. Please try again." });
     }
 }

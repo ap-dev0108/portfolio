@@ -83,7 +83,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
     if (!cloudName || !apiKey || !apiSecret) {
-        console.error("assets: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY or CLOUDINARY_API_SECRET is not set");
         return res.status(500).json({ error: "Cloudinary isn’t configured on the server." });
     }
 
@@ -102,7 +101,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         });
 
         if (!response.ok) {
-            console.error("assets: Cloudinary search failed", response.status, await response.text());
             return res.status(502).json({ error: "Couldn’t load assets." });
         }
 
@@ -158,7 +156,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=3600");
         return res.status(200).json({ cloudName, resumes, works, hero });
     } catch (err) {
-        console.error("assets: request to Cloudinary failed", err);
         return res.status(502).json({ error: "Couldn’t load assets." });
     }
 }
