@@ -54,7 +54,7 @@ const PdfBadge = ({ size }: { size: number }) => (
 );
 
 /* -------------------------------------------------------------------------- */
-/*  Resume picker                                                              */
+/*  Resume picker (unchanged)                                                  */
 /* -------------------------------------------------------------------------- */
 
 const buttonClass = [
@@ -194,6 +194,10 @@ function ResumePicker() {
 const ROLE_OPTIONS = ["Company / agency", "Recruiter", "Individual client", "Something else"];
 const PURPOSE_OPTIONS = ["Work with me", "Hire me", "Ask a question"];
 
+// Web3Forms: add VITE_WEB3FORMS_KEY=<your access key> to .env (project root), then restart Vite.
+const WEB3FORMS_URL = "https://api.web3forms.com/submit";
+const ACCESS_KEY = import.meta.env.VITE_FORM_ACCESS_KEY;
+
 const fieldClass = [
   "block w-full border-2 border-gray-500 bg-black px-5 py-4 text-white",
   "font-['Open_Sans',sans-serif] text-base placeholder:text-gray-500",
@@ -228,45 +232,37 @@ function Select({ id, name, options }: { id: string; name: string; options: stri
 
 type Status = "idle" | "sending" | "sent" | "error";
 
-interface ContactProps {
-  /** API route that emails you each message. Defaults to the function in api/contact.ts. */
-  endpoint?: string;
-}
-
-/** Everything the browser can tell us about the visitor. It travels with the form
- *  and ends up in the email. The server adds the things it can see for itself
- *  (exact time, IP address, approximate location, raw user agent). */
-function collectClientDetails(startedAt: number) {
+/** What the browser can tell us about the visitor. Keys are written as readable
+ *  labels because Web3Forms shows each key as a row in the email. Empty values
+ *  are dropped so the email stays short. */
+function collectClientDetails(startedAt: number): Record<string, string> {
   const nav = navigator as Navigator & {
-    userAgentData?: {
-      platform?: string;
-      mobile?: boolean;
-      brands?: { brand: string; version: string }[];
-    };
+    userAgentData?: { platform?: string; brands?: { brand: string; version: string }[] };
     connection?: { effectiveType?: string };
     deviceMemory?: number;
   };
-  const now = new Date();
 
-  return {
-    localTime: now.toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" }),
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    secondsToFill: Math.round((Date.now() - startedAt) / 1000),
-    platform: nav.userAgentData?.platform ?? nav.platform,
-    brands: nav.userAgentData?.brands?.map((b) => `${b.brand} ${b.version}`).join(", "),
-    touch: nav.maxTouchPoints > 0,
-    languages: nav.languages?.join(", ") ?? nav.language,
-    screen: `${screen.width}×${screen.height} at ${window.devicePixelRatio}x`,
-    viewport: `${window.innerWidth}×${window.innerHeight}`,
-    colorScheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
-    connection: nav.connection?.effectiveType,
-    deviceMemory: nav.deviceMemory,
-    pageUrl: window.location.href,
-    referrer: document.referrer,
+  const details: Record<string, string | undefined> = {
+    "Visitor local time": new Date().toLocaleString(undefined, { dateStyle: "full", timeStyle: "long" }),
+    "Visitor time zone": Intl.DateTimeFormat().resolvedOptions().timeZone,
+    "Seconds to fill form": String(Math.round((Date.now() - startedAt) / 1000)),
+    "Platform": nav.userAgentData?.platform ?? nav.platform,
+    "Browser": nav.userAgentData?.brands?.map((b) => `${b.brand} ${b.version}`).join(", "),
+    "Touch device": nav.maxTouchPoints > 0 ? "yes" : "no",
+    "Languages": nav.languages?.join(", ") ?? nav.language,
+    "Screen": `${screen.width}×${screen.height} at ${window.devicePixelRatio}x`,
+    "Viewport": `${window.innerWidth}×${window.innerHeight}`,
+    "Color scheme": window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+    "Connection": nav.connection?.effectiveType,
+    "Device memory (GB)": nav.deviceMemory?.toString(),
+    "Page URL": window.location.href,
+    "Referrer": document.referrer,
   };
+
+  return Object.fromEntries(Object.entries(details).filter(([, v]) => v)) as Record<string, string>;
 }
 
-function ContactForm({ endpoint = "/api/contact" }: ContactProps) {
+function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const startedAt = useRef(Date.now()); // when the visitor first saw the form
@@ -274,18 +270,42 @@ function ContactForm({ endpoint = "/api/contact" }: ContactProps) {
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
+    const fields = Object.fromEntries(new FormData(form)) as Record<string, string>;
+
+    // Honeypot: only bots fill this. Pretend it worked and send nothing.
+    if (fields.website) {
+      form.reset();
+      setStatus("sent");
+      return;
+    }
+
+    if (!ACCESS_KEY) {
+      setError("The contact form isn’t set up yet. Please email me directly instead.");
+      setStatus("error");
+      return;
+    }
 
     setStatus("sending");
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch(WEB3FORMS_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
-          ...Object.fromEntries(new FormData(form)),
-          client: collectClientDetails(startedAt.current),
+          access_key: ACCESS_KEY,
+          subject: `Portfolio enquiry from ${fields.name}`,
+          from_name: "Portfolio contact form",
+          name: fields.name,
+          email: fields.email, // Web3Forms uses this as the reply-to address
+          role: fields.role,
+          purpose: fields.purpose,
+          message: fields.message,
+          ...collectClientDetails(startedAt.current),
         }),
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) throw new Error(data?.message ?? `Request failed (${res.status})`);
+
       form.reset();
       setStatus("sent");
     } catch {
@@ -356,7 +376,7 @@ function ContactForm({ endpoint = "/api/contact" }: ContactProps) {
 /*  Section                                                                    */
 /* -------------------------------------------------------------------------- */
 
-export default function ContactAndResume({ endpoint }: ContactProps) {
+export default function ContactAndResume() {
   return (
     <section
       id="contact"
@@ -374,7 +394,7 @@ export default function ContactAndResume({ endpoint }: ContactProps) {
           <p className="mt-6 max-w-xl font-['Lora',serif] text-xl leading-relaxed text-gray-400">
             Have a project in mind or an opportunity to discuss? Tell me a little about it.
           </p>
-          <ContactForm endpoint={endpoint} />
+          <ContactForm />
         </div>
 
         <div className="flex flex-col justify-center border-t-2 border-gray-700 pt-12 lg:border-l-2 lg:border-t-0 lg:pl-16 lg:pt-0">
